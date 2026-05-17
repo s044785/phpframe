@@ -150,6 +150,19 @@ final class QueryBuilder
     }
 
     /**
+     * 分页查询，返回 Paginator（含当前页数据和分页元信息）
+     * @param int $perPage 每页条数
+     * @param int $page    当前页码
+     */
+    public function paginate(int $perPage = 15, int $page = 1): Paginator
+    {
+        $total = $this->count();
+        $this->limit($perPage)->offset(max(0, ($page - 1) * $perPage));
+        $items = $this->get();
+        return new Paginator($items, $total, $perPage, $page);
+    }
+
+    /**
      * 插入新记录，返回自增 ID
      * @param array<string, mixed> $data
      */
