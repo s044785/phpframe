@@ -24,3 +24,4 @@ if (is_file($composerAutoload)) {
 PHPFrame\Support\Env::load(__DIR__ . '/../.env');
 PHPFrame\Support\ErrorHandler::register();
 PHPFrame\Support\Db::init();
+PHPFrame\Support\Redis::init();

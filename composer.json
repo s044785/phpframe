@@ -6,7 +6,8 @@
   "require": {
     "php": "^8.2",
     "ext-pdo": "*",
-    "ext-json": "*"
+    "ext-json": "*",
+    "ext-redis": "*"
   },
   "autoload": {
     "psr-4": {
