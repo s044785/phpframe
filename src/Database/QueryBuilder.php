@@ -7,6 +7,8 @@ namespace PHPFrame\Database;
 final class QueryBuilder
 {
     private string $table;
+    // 关联的 Model 类名（设置后 get/first 会自动水合为 Model 实例）
+    private ?string $modelClass = null;
     /** @var array<int, array<int, mixed>> */
     private array $wheres = [];
     /** @var array<int, array{0: string, 1: string}> */
@@ -17,6 +19,13 @@ final class QueryBuilder
     public function __construct(string $table)
     {
         $this->table = $table;
+    }
+
+    // 设置要水合的 Model 类名，设置后 get() 和 first() 返回 Model 实例而非数组
+    public function setModel(string $modelClass): self
+    {
+        $this->modelClass = $modelClass;
+        return $this;
     }
 
     // 动态切换操作的表名
@@ -103,20 +112,24 @@ final class QueryBuilder
     // ── 执行方法 ──────────────────────────────────────────────
 
     /**
-     * 执行查询，返回所有匹配行
-     * @return array<int, array<string, mixed>>
+     * 执行查询，返回所有匹配行；若设置了 modelClass 则返回 Model 实例数组
+     * @return array<int, array<string, mixed>|object>
      */
     public function get(): array
     {
         [$sql, $params] = $this->buildSelect();
-        return Connection::getInstance()->select($sql, $params);
+        $rows = Connection::getInstance()->select($sql, $params);
+        if ($this->modelClass !== null && $rows !== []) {
+            return array_map(fn($row) => $this->modelClass::hydrate($row), $rows);
+        }
+        return $rows;
     }
 
     /**
-     * 执行查询，只返回第一行
-     * @return array<string, mixed>|null
+     * 执行查询，只返回第一行；若设置了 modelClass 则返回 Model 实例
+     * @return array<string, mixed>|object|null
      */
-    public function first(): ?array
+    public function first(): mixed
     {
         $this->limit = 1;
         $rows = $this->get();

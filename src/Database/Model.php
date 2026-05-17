@@ -22,10 +22,10 @@ abstract class Model implements \ArrayAccess
 
     // ── 静态查询方法 ──────────────────────────────────────────
 
-    // 创建 QueryBuilder 实例
+    // 创建 QueryBuilder 实例，自动绑定当前 Model 类以启用结果水合
     public static function query(): QueryBuilder
     {
-        return new QueryBuilder(static::table());
+        return (new QueryBuilder(static::table()))->setModel(static::class);
     }
 
     // 获取表名：优先使用子类定义的 $table，否则从类名自动推导
@@ -41,21 +41,19 @@ abstract class Model implements \ArrayAccess
         return $snake . 's';
     }
 
-    // 根据主键查找单条记录
+    // 根据主键查找单条记录（query() 已绑定模型，first() 自动水合）
     public static function find(mixed $id): ?static
     {
-        $row = static::query()->where(static::$primaryKey, $id)->first();
-        return $row !== null ? static::hydrate($row) : null;
+        return static::query()->where(static::$primaryKey, $id)->first();
     }
 
     /**
-     * 获取表中所有记录
+     * 获取表中所有记录（query() 已绑定模型，get() 自动水合）
      * @return static[]
      */
     public static function all(): array
     {
-        $rows = static::query()->get();
-        return array_map(fn($row) => static::hydrate($row), $rows);
+        return static::query()->get();
     }
 
     // 快捷创建 QueryBuilder 并添加 WHERE 条件
@@ -87,9 +85,8 @@ abstract class Model implements \ArrayAccess
         foreach ($attributes as $col => $val) {
             $query->where($col, $val);
         }
-        $row = $query->first();
-        if ($row !== null) {
-            $model = static::hydrate($row);
+        $model = $query->first();
+        if ($model !== null) {
             $model->fill($values);
             $model->save();
             return $model;
@@ -101,7 +98,7 @@ abstract class Model implements \ArrayAccess
      * 将数据库行数据水合为 Model 实例
      * @param array<string, mixed> $row
      */
-    protected static function hydrate(array $row): static
+    public static function hydrate(array $row): static
     {
         $model = new static();
         $model->attributes = $row;
