@@ -1,0 +1,16 @@
+{
+  "name": "phpframe/framework",
+  "description": "PHPFrame - A simple PHP micro-framework with Eloquent-style ORM.",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": "^8.2",
+    "ext-pdo": "*",
+    "ext-json": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "PHPFrame\\": "src/"
+    }
+  }
+}
