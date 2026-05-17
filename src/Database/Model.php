@@ -3,37 +3,45 @@ declare(strict_types=1);
 
 namespace PHPFrame\Database;
 
+// Eloquent 风格的基类 Model，提供查询构建和实例持久化能力
 abstract class Model implements \ArrayAccess
 {
+    // 子类可覆盖：表名（留空则自动推导）
     protected static string $table = '';
+    // 子类可覆盖：主键字段名
     protected static string $primaryKey = 'id';
+    // 是否自动维护 created_at / updated_at 时间戳
     public bool $timestamps = true;
 
-    /** @var array<string, mixed> */
+    /** @var array<string, mixed> 当前属性 */
     private array $attributes = [];
-    /** @var array<string, mixed> */
+    /** @var array<string, mixed> 原始属性（用于脏检测） */
     private array $original = [];
+    // 该实例是否对应数据库中的一条记录
     private bool $exists = false;
 
-    // ── Static Query API ─────────────────────────────────────
+    // ── 静态查询方法 ──────────────────────────────────────────
 
+    // 创建 QueryBuilder 实例
     public static function query(): QueryBuilder
     {
         return new QueryBuilder(static::table());
     }
 
+    // 获取表名：优先使用子类定义的 $table，否则从类名自动推导
     public static function table(): string
     {
         if (static::$table !== '') {
             return static::$table;
         }
-        // Default: pluralize + snake_case (Post → posts, BlogPost → blog_posts)
+        // 自动推导规则：Post → posts, BlogPost → blog_posts
         $parts = explode('\\', static::class);
         $base = end($parts);
         $snake = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $base));
         return $snake . 's';
     }
 
+    // 根据主键查找单条记录
     public static function find(mixed $id): ?static
     {
         $row = static::query()->where(static::$primaryKey, $id)->first();
@@ -41,6 +49,7 @@ abstract class Model implements \ArrayAccess
     }
 
     /**
+     * 获取表中所有记录
      * @return static[]
      */
     public static function all(): array
@@ -49,12 +58,14 @@ abstract class Model implements \ArrayAccess
         return array_map(fn($row) => static::hydrate($row), $rows);
     }
 
+    // 快捷创建 QueryBuilder 并添加 WHERE 条件
     public static function where(string $column, mixed $operator, mixed $value = null): QueryBuilder
     {
         return static::query()->where($column, $operator, $value);
     }
 
     /**
+     * 创建并保存一条新记录
      * @param array<string, mixed> $data
      */
     public static function create(array $data): static
@@ -66,7 +77,9 @@ abstract class Model implements \ArrayAccess
     }
 
     /**
-     * @param array<string, mixed> $data
+     * 根据条件查找，存在则更新，不存在则创建
+     * @param array<string, mixed> $attributes 查找条件
+     * @param array<string, mixed> $values     要更新或创建的字段
      */
     public static function updateOrCreate(array $attributes, array $values): static
     {
@@ -85,6 +98,7 @@ abstract class Model implements \ArrayAccess
     }
 
     /**
+     * 将数据库行数据水合为 Model 实例
      * @param array<string, mixed> $row
      */
     protected static function hydrate(array $row): static
@@ -96,9 +110,10 @@ abstract class Model implements \ArrayAccess
         return $model;
     }
 
-    // ── Instance API ─────────────────────────────────────────
+    // ── 实例方法 ──────────────────────────────────────────────
 
     /**
+     * 批量填充属性（不立即保存）
      * @param array<string, mixed> $data
      */
     public function fill(array $data): void
@@ -108,8 +123,10 @@ abstract class Model implements \ArrayAccess
         }
     }
 
+    // 保存：存在则更新脏字段，不存在则插入
     public function save(): bool
     {
+        // 自动维护时间戳
         if ($this->timestamps) {
             $now = date('Y-m-d H:i:s');
             if (!$this->exists) {
@@ -121,6 +138,7 @@ abstract class Model implements \ArrayAccess
         if ($this->exists) {
             $pk = static::$primaryKey;
             $pkVal = $this->attributes[$pk] ?? null;
+            // 只更新有变化的字段
             $dirty = array_diff_assoc($this->attributes, $this->original);
             if ($dirty === []) {
                 return true;
@@ -139,6 +157,7 @@ abstract class Model implements \ArrayAccess
         return true;
     }
 
+    // 删除数据库中的对应记录
     public function delete(): bool
     {
         if (!$this->exists) {
@@ -155,6 +174,7 @@ abstract class Model implements \ArrayAccess
     }
 
     /**
+     * 更新部分字段并立即保存
      * @param array<string, mixed> $data
      */
     public function update(array $data): bool
@@ -163,12 +183,14 @@ abstract class Model implements \ArrayAccess
         return $this->save();
     }
 
+    // 该实例是否对应数据库中的记录
     public function exists(): bool
     {
         return $this->exists;
     }
 
     /**
+     * 将属性转为数组
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -176,13 +198,15 @@ abstract class Model implements \ArrayAccess
         return $this->attributes;
     }
 
-    // ── Magic ────────────────────────────────────────────────
+    // ── 魔术访问器 ────────────────────────────────────────────
 
+    // 通过 $model->field 访问属性
     public function __get(string $key): mixed
     {
         return $this->attributes[$key] ?? null;
     }
 
+    // 通过 $model->field = value 设置属性
     public function __set(string $key, mixed $value): void
     {
         $this->attributes[$key] = $value;
@@ -193,6 +217,7 @@ abstract class Model implements \ArrayAccess
         return isset($this->attributes[$key]);
     }
 
+    // ArrayAccess 接口实现，支持 $model['field'] 访问
     public function offsetExists(mixed $offset): bool
     {
         return $this->__isset($offset);

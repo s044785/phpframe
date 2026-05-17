@@ -3,11 +3,11 @@ declare(strict_types=1);
 
 namespace PHPFrame\Database;
 
+// 查询构建器：链式调用构建 SQL，所有值通过参数绑定，防止 SQL 注入
 final class QueryBuilder
 {
     private string $table;
-    private string $as = '';
-    /** @var array<int, array{0: string, 1: string, 2: mixed}> */
+    /** @var array<int, array<int, mixed>> */
     private array $wheres = [];
     /** @var array<int, array{0: string, 1: string}> */
     private array $orders = [];
@@ -19,12 +19,17 @@ final class QueryBuilder
         $this->table = $table;
     }
 
+    // 动态切换操作的表名
     public function from(string $table): self
     {
         $this->table = $table;
         return $this;
     }
 
+    /**
+     * 添加 WHERE 条件（AND 连接）
+     * 支持两参数简写：where('status', 'active') 等价于 where('status', '=', 'active')
+     */
     public function where(string $column, string $operator, mixed $value = null): self
     {
         if (func_num_args() === 2) {
@@ -35,6 +40,10 @@ final class QueryBuilder
         return $this;
     }
 
+    /**
+     * 添加 WHERE 条件（OR 连接）
+     * 支持两参数简写：orWhere('status', 'active') 等价于 orWhere('status', '=', 'active')
+     */
     public function orWhere(string $column, string $operator, mixed $value = null): self
     {
         if (func_num_args() === 2) {
@@ -46,6 +55,7 @@ final class QueryBuilder
     }
 
     /**
+     * WHERE IN 条件
      * @param array<int, mixed> $values
      */
     public function whereIn(string $column, array $values): self
@@ -55,39 +65,45 @@ final class QueryBuilder
         return $this;
     }
 
+    // 添加排序规则
     public function orderBy(string $column, string $direction = 'ASC'): self
     {
         $this->orders[] = [$column, strtoupper($direction) === 'DESC' ? 'DESC' : 'ASC'];
         return $this;
     }
 
+    // 按创建时间倒序（最新的在前）
     public function latest(string $column = 'created_at'): self
     {
         $this->orders[] = [$column, 'DESC'];
         return $this;
     }
 
+    // 按创建时间正序（最早的在前）
     public function oldest(string $column = 'created_at'): self
     {
         $this->orders[] = [$column, 'ASC'];
         return $this;
     }
 
+    // 限制返回行数
     public function limit(int $limit): self
     {
         $this->limit = $limit;
         return $this;
     }
 
+    // 设置偏移量（用于分页）
     public function offset(int $offset): self
     {
         $this->offset = $offset;
         return $this;
     }
 
-    // ── Execution ────────────────────────────────────────────
+    // ── 执行方法 ──────────────────────────────────────────────
 
     /**
+     * 执行查询，返回所有匹配行
      * @return array<int, array<string, mixed>>
      */
     public function get(): array
@@ -97,6 +113,7 @@ final class QueryBuilder
     }
 
     /**
+     * 执行查询，只返回第一行
      * @return array<string, mixed>|null
      */
     public function first(): ?array
@@ -106,18 +123,21 @@ final class QueryBuilder
         return $rows[0] ?? null;
     }
 
+    // 返回匹配记录数
     public function count(): int
     {
         [$sql, $params] = $this->buildCount();
         return (int) Connection::getInstance()->scalar($sql, $params);
     }
 
+    // 判断是否存在匹配记录
     public function exists(): bool
     {
         return $this->count() > 0;
     }
 
     /**
+     * 插入新记录，返回自增 ID
      * @param array<string, mixed> $data
      */
     public function insert(array $data): int
@@ -130,6 +150,7 @@ final class QueryBuilder
     }
 
     /**
+     * 更新记录，返回受影响行数
      * @param array<string, mixed> $data
      */
     public function update(array $data): int
@@ -140,6 +161,7 @@ final class QueryBuilder
         return Connection::getInstance()->execute($sql, [...array_values($data), ...$whereParams]);
     }
 
+    // 删除记录，返回受影响行数
     public function delete(): int
     {
         [$whereClause, $whereParams] = $this->buildWhereClause();
@@ -147,9 +169,10 @@ final class QueryBuilder
         return Connection::getInstance()->execute($sql, $whereParams);
     }
 
-    // ── SQL Building ─────────────────────────────────────────
+    // ── SQL 构建（内部方法）─────────────────────────────────────
 
     /**
+     * 构建 SELECT 语句
      * @return array{0: string, 1: array<int, mixed>}
      */
     private function buildSelect(): array
@@ -175,6 +198,7 @@ final class QueryBuilder
     }
 
     /**
+     * 构建 COUNT 语句
      * @return array{0: string, 1: array<int, mixed>}
      */
     private function buildCount(): array
@@ -188,6 +212,7 @@ final class QueryBuilder
     }
 
     /**
+     * 构建 WHERE 子句，返回 SQL 片段和参数数组
      * @return array{0: string, 1: array<int, mixed>}
      */
     private function buildWhereClause(): array
@@ -200,7 +225,8 @@ final class QueryBuilder
             $prefix = $i === 0 ? '' : "{$bool} ";
 
             if ($operator === 'IN') {
-                $placeholders = $where[4] ?? throw new \RuntimeException('IN clause missing placeholders');
+                // whereIn 的 wheres 结构多一个占位符字符串：[AND, column, 'IN', values, '(?, ?)']
+                $placeholders = $where[4] ?? throw new \RuntimeException('IN 子句缺少占位符');
                 $clauses[] = "{$prefix}{$column} IN {$placeholders}";
                 array_push($params, ...$value);
             } else {

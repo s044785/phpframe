@@ -5,6 +5,7 @@ namespace PHPFrame\Http;
 
 use Closure;
 
+// 路由器：支持静态路径和带参数路径（如 /post/{id}），按 HTTP 方法匹配
 final class Router
 {
     /** @var array<array{method: string, pattern: string, regex: string, paramNames: string[], handler: callable(Request): Response}> */
@@ -12,6 +13,7 @@ final class Router
     private ?Closure $notFoundHandler = null;
 
     /**
+     * 注册 GET 路由
      * @param callable(Request): Response $handler
      */
     public function get(string $path, callable $handler): void
@@ -20,6 +22,7 @@ final class Router
     }
 
     /**
+     * 注册 POST 路由
      * @param callable(Request): Response $handler
      */
     public function post(string $path, callable $handler): void
@@ -28,6 +31,7 @@ final class Router
     }
 
     /**
+     * 设置 404 处理器
      * @param callable(Request): Response $handler
      */
     public function setNotFoundHandler(callable $handler): void
@@ -36,6 +40,7 @@ final class Router
     }
 
     /**
+     * 将路径中的 {name} 占位符转换为正则，并存储路由信息
      * @param callable(Request): Response $handler
      */
     private function add(string $method, string $path, callable $handler): void
@@ -56,6 +61,7 @@ final class Router
         ];
     }
 
+    // 分发请求：按注册顺序匹配路由，提取路径参数后调用处理器
     public function dispatch(Request $request): Response
     {
         foreach ($this->routes as $route) {
@@ -63,7 +69,7 @@ final class Router
                 continue;
             }
             if (preg_match($route['regex'], $request->path, $matches)) {
-                array_shift($matches); // full match
+                array_shift($matches); // 去掉完整匹配
                 foreach ($route['paramNames'] as $i => $name) {
                     $request->params[$name] = $matches[$i] ?? '';
                 }

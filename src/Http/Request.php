@@ -3,14 +3,15 @@ declare(strict_types=1);
 
 namespace PHPFrame\Http;
 
+// HTTP 请求对象：封装方法、路径、查询参数、请求头、请求体等信息
 final class Request
 {
     /**
-     * @param array<string, string> $query
-     * @param array<string, string> $headers
-     * @param array<string, mixed> $post
-     * @param array<string, mixed> $server
-     * @param array<string, string> $params  route path params
+     * @param array<string, string> $query    URL 查询参数
+     * @param array<string, string> $headers  请求头（键名小写）
+     * @param array<string, mixed>  $post     POST 请求体数据
+     * @param array<string, mixed>  $server   $_SERVER 原始数据
+     * @param array<string, string> $params   路由路径参数（由 Router 注入）
      */
     public function __construct(
         public readonly string $method,
@@ -24,6 +25,7 @@ final class Request
     ) {
     }
 
+    // 从 PHP 超全局变量创建 Request 实例
     public static function fromGlobals(): self
     {
         $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
@@ -32,6 +34,7 @@ final class Request
         $query = [];
         parse_str((string)(parse_url($uri, PHP_URL_QUERY) ?? ''), $query);
 
+        // 提取 HTTP 请求头
         $headers = [];
         foreach ($_SERVER as $key => $value) {
             if (!is_string($value)) {
@@ -45,6 +48,7 @@ final class Request
 
         $rawBody = (string)file_get_contents('php://input');
 
+        // 自动解析 JSON 请求体
         $post = $_POST;
         if ($method === 'POST' && ($post === [] || $post === null)) {
             $ct = strtolower((string)($_SERVER['CONTENT_TYPE'] ?? $_SERVER['HTTP_CONTENT_TYPE'] ?? ''));
@@ -67,11 +71,13 @@ final class Request
         );
     }
 
+    // 获取指定请求头的值
     public function header(string $name): ?string
     {
         return $this->headers[strtolower($name)] ?? null;
     }
 
+    // 获取路由路径参数（如 /post/{id} 中的 id）
     public function param(string $name): ?string
     {
         return $this->params[$name] ?? null;
