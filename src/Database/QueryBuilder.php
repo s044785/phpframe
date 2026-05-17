@@ -39,7 +39,7 @@ final class QueryBuilder
      * 添加 WHERE 条件（AND 连接）
      * 支持两参数简写：where('status', 'active') 等价于 where('status', '=', 'active')
      */
-    public function where(string $column, string $operator, mixed $value = null): self
+    public function where(string $column, mixed $operator, mixed $value = null): self
     {
         if (func_num_args() === 2) {
             $value = $operator;
@@ -53,7 +53,7 @@ final class QueryBuilder
      * 添加 WHERE 条件（OR 连接）
      * 支持两参数简写：orWhere('status', 'active') 等价于 orWhere('status', '=', 'active')
      */
-    public function orWhere(string $column, string $operator, mixed $value = null): self
+    public function orWhere(string $column, mixed $operator, mixed $value = null): self
     {
         if (func_num_args() === 2) {
             $value = $operator;
