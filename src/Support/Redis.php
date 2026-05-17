@@ -20,13 +20,15 @@ final class Redis
         $host = Env::get('REDIS_HOST', '127.0.0.1') ?? '127.0.0.1';
         $port = (int)(Env::get('REDIS_PORT', '6379') ?? '6379');
         $pass = Env::get('REDIS_PASS', '');
+        $db = (int)(Env::get('REDIS_DB', '0') ?? '0');
 
         $redis = new \Redis();
         $redis->connect($host, $port);
         if ($pass !== null && $pass !== '') {
             $redis->auth($pass);
         }
-
+        $redis->select($db);
+        
         return new self($redis);
     }
 
