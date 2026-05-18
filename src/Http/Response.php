@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace PHPFrame\Http;
@@ -13,8 +14,7 @@ final class Response
         public readonly int $status,
         public readonly array $headers,
         public readonly string $body,
-    ) {
-    }
+    ) {}
 
     // 构建 HTML 响应
     public static function html(string $html, int $status = 200): self
@@ -49,5 +49,22 @@ final class Response
             header($k . ': ' . $v);
         }
         echo $response->body;
+    }
+
+    /**
+     * 标准成功响应：{ errcode:0, status:"SUCCESS", data: ... }
+     * @param mixed $data
+     */
+    public static function success(mixed $data): void
+    {
+        self::json(['errcode' => 0, 'status' => 'SUCCESS', 'data' => $data], 200);
+    }
+
+    /**
+     * 标准失败响应：{ errcode:xxxx, status:"FAILED", message:"中文错误消息" }
+     */
+    public static function fail(int $errcode, string $message, int $httpStatus = 500): void
+    {
+        self::json(['errcode' => $errcode, 'status' => 'FAILED', 'message' => $message], $httpStatus);
     }
 }
