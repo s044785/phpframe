@@ -57,9 +57,12 @@ abstract class Model implements \ArrayAccess
     }
 
     // 快捷创建 QueryBuilder 并添加 WHERE 条件
+    // 支持两参数简写：where('email', $val) → where('email', '=', $val)
     public static function where(string $column, mixed $operator, mixed $value = null): QueryBuilder
     {
-        return static::query()->where($column, $operator, $value);
+        return func_num_args() === 2
+            ? static::query()->where($column, $operator)
+            : static::query()->where($column, $operator, $value);
     }
 
     /**
