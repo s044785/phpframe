@@ -23,13 +23,11 @@ final class Mail
             'From: ' . $fromName . ' <' . $from . '>',
         ];
 
-        // 尝试系统 mail()
-        if (@mail($to, $subject, $body, implode("\r\n", $headers))) {
-            return true;
-        }
-
-        // 开发环境：写入日志文件
+        // 开发环境：始终写入日志（方便获取验证码）
         Logger::info('mail', "To: {$to} | Subject: {$subject}\n{$body}");
+
+        // 尝试系统 mail()
+        @mail($to, $subject, $body, implode("\r\n", $headers));
         return true;
     }
 }
