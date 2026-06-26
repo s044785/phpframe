@@ -10,6 +10,8 @@ use RuntimeException;
 // 路由器：支持静态路径、带参数路径（如 /post/{id}）、路由分组、命名路由、URL 生成
 final class Router
 {
+    private static ?self $instance = null;
+
     /**
      * @var array<array{method: string, pattern: string, regex: string, paramNames: string[], handler: callable(Request): Response, name: ?string}>
      */
@@ -25,6 +27,27 @@ final class Router
     private string $groupPrefix = '';
 
     private ?Closure $notFoundHandler = null;
+
+    // ========== 静态实例（供视图中直接调用 url()） ==========
+
+    /**
+     * 设置当前 Router 实例（在 Routes::build() 中调用）
+     */
+    public static function setInstance(self $router): void
+    {
+        self::$instance = $router;
+    }
+
+    /**
+     * 获取当前 Router 实例
+     */
+    public static function getInstance(): self
+    {
+        if (self::$instance === null) {
+            throw new RuntimeException('Router 实例尚未初始化，请先调用 Routes::build()');
+        }
+        return self::$instance;
+    }
 
     // ========== HTTP 方法快捷注册 ==========
 
