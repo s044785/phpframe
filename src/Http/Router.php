@@ -147,11 +147,12 @@ final class Router
      *
      * @param string $name   路由名称
      * @param array<string, string|int> $params  路径参数（如 ['id' => 5]）
+     * @param array<string, string> $query  URL 查询参数（如 ['page' => 2]）
      * @return string 生成的路径（如 "/post/5"）
      *
      * @throws RuntimeException 路由名称不存在时
      */
-    public function url(string $name, array $params = []): string
+    public function url(string $name, array $params = [], ?array $query = []): string
     {
         if (!isset($this->namedRoutes[$name])) {
             throw new RuntimeException("命名路由不存在: {$name}");
@@ -171,6 +172,9 @@ final class Router
                 (string)$params[$paramName],
                 $path
             );
+        }
+        if ($query) {
+            $path .= '?' . http_build_query($query);
         }
 
         return $path;
