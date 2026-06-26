@@ -2,3 +2,7 @@
 /vendor
 .DS_Store
 /logs/*.log
+.claude/
+.reasonix/
+reasonix.toml
+guide.md

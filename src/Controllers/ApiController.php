@@ -34,4 +34,9 @@ final class ApiController
         }
         return Response::fail('Invalid query parameter');
     }
+
+    public function url(Request $r): Response
+    {
+        return Response::success(['id' => $r->params['id']]);
+    }
 }
