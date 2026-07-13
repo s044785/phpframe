@@ -131,7 +131,7 @@ final class Router
     {
         // 保存当前前缀，追加新层级
         $previousPrefix = $this->groupPrefix;
-        $this->groupPrefix .= '/' . trim($prefix, '/');
+        $this->groupPrefix .= '/' . ltrim($prefix, '/');
 
         $callback($this);
 
@@ -243,7 +243,7 @@ final class Router
     private function add(string $method, string $path, callable $handler, ?string $name): self
     {
         // 拼接分组前缀
-        $fullPath = $this->groupPrefix . '/' . trim($path, '/');
+        $fullPath = $this->groupPrefix . '/' . ltrim($path, '/');
         $fullPath = $fullPath === '' ? '/' : $fullPath;
 
         // 检查命名路由重复
