@@ -197,6 +197,28 @@ final class Router
         return array_keys($this->namedRoutes);
     }
 
+    /**
+     * 判断给定的 URL 或路径是否匹配指定命名路由
+     *
+     * 常用于视图中高亮当前导航项：
+     *   <?php if ($router->is('tool.index', $_SERVER['REQUEST_URI'])): ?>active<?php endif; ?>
+     *
+     * handler 中也可通过 $request->routeName 直接获取路由名：
+     *   if ($request->routeName === 'tool.index') { ... }
+     *
+     * @param string $name       路由名称
+     * @param string $pathOrUrl  路径或完整 URL，如 "/tool/?id=123"
+     */
+    public function is(string $name, string $pathOrUrl): bool
+    {
+        if (!isset($this->namedRoutes[$name])) {
+            return false;
+        }
+        // 去掉 query string，只取 path
+        $path = parse_url($pathOrUrl, PHP_URL_PATH) ?: '/';
+        return (bool) preg_match($this->namedRoutes[$name]['regex'], $path);
+    }
+
     // ========== 404 处理 ==========
 
     /**
@@ -224,6 +246,7 @@ final class Router
                 foreach ($route['paramNames'] as $i => $name) {
                     $request->params[$name] = $matches[$i] ?? '';
                 }
+                $request->routeName = $route['name']; // 记录匹配到的路由名
                 return ($route['handler'])($request);
             }
         }

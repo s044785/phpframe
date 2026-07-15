@@ -12,6 +12,7 @@ final class Request
      * @param array<string, mixed>  $post     POST 请求体数据
      * @param array<string, mixed>  $server   $_SERVER 原始数据
      * @param array<string, string> $params   路由路径参数（由 Router 注入）
+     * @param ?string               $routeName 匹配到的命名路由名（由 Router dispatch 时注入）
      */
     public function __construct(
         public readonly string $method,
@@ -22,6 +23,7 @@ final class Request
         public readonly array $post,
         public readonly array $server,
         public array $params = [],
+        public ?string $routeName = null,
     ) {
     }
 
